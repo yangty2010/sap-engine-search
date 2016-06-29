@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="sap-engine-search">
+        <wb-resource deploy-path="/" source-path="/target/m2e-jee/web-resources"/>
+        <wb-resource deploy-path="/" source-path="/src/main/webapp" tag="defaultRootSource"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/java"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/resources"/>
+        <dependent-module archiveName="snap-app-sdk-3.0.1-SNAPSHOT.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/snap-app-sdk/snap-app-sdk">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="snap-infrastructure-3.0.1-SNAPSHOT.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/snap-infrastructure/snap-infrastructure">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="snap-license-3.0.1-SNAPSHOT.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/snap-license/snap-license">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="snap-common-search-3.0.1-SNAPSHOT.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/snap-common-search/snap-common-search">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="snap-engine-file-stub-3.0.1-SNAPSHOT.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/snap-engine-file-stub/snap-engine-file-stub">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <property name="context-root" value="sap-engine-search"/>
+        <property name="java-output-path" value="/sap-engine-search/target/classes"/>
+    </wb-module>
+</project-modules>

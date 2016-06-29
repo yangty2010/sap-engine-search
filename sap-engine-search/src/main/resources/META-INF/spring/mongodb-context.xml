@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mongo="http://www.springframework.org/schema/data/mongo"
+	xmlns:repository="http://www.springframework.org/schema/data/repository"
+	xsi:schemaLocation="http://www.springframework.org/schema/data/mongo http://www.springframework.org/schema/data/mongo/spring-mongo.xsd
+		http://www.springframework.org/schema/data/repository http://www.springframework.org/schema/data/repository/spring-repository.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<mongo:db-factory id="dbFactory" dbname="${mongo.dbname}" host="${mongo.host}" port="${mongo.port}"/>  
+	<mongo:mapping-converter id="converter" db-factory-ref="dbFactory" />
+
+	<!-- 非上传文件形式的图片的GridFS存储 -->
+	<bean id="imageGridfs" class="org.springframework.data.mongodb.gridfs.GridFsTemplate">
+		<constructor-arg ref="dbFactory" />
+		<constructor-arg ref="converter" />
+		<constructor-arg name="bucket" value="${mongo.image.bucket}" />
+	</bean>
+	
+	<!-- 不需要浏览的附件的GridFS存储 -->
+	<bean id="attachmentGridfs" class="org.springframework.data.mongodb.gridfs.GridFsTemplate">
+		<constructor-arg ref="dbFactory" />
+		<constructor-arg ref="converter" />
+		<constructor-arg name="bucket" value="${mongo.attachment.bucket}" />
+	</bean>
+	
+	<!-- 上传原文件的GridFS存储 -->
+	<bean id="sourceGridfs" class="org.springframework.data.mongodb.gridfs.GridFsTemplate">
+		<constructor-arg ref="dbFactory" />
+		<constructor-arg ref="converter" />
+		<constructor-arg name="bucket" value="${mongo.source.bucket}" />
+	</bean>
+	
+	<!-- 转换后pdf的GridFS存储 -->
+	<bean id="pdfGridfs" class="org.springframework.data.mongodb.gridfs.GridFsTemplate">
+		<constructor-arg ref="dbFactory" />
+		<constructor-arg ref="converter" />
+		<constructor-arg name="bucket" value="${mongo.pdf.bucket}" />
+	</bean>
+		
+	<mongo:repositories base-package="com.neusoft.saca.snap">
+		<repository:include-filter type="regex" expression=".*.*MongodbRepo"/>
+	</mongo:repositories>
+</beans>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:axon="http://www.axonframework.org/schema/core"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.axonframework.org/schema/core http://www.axonframework.org/schema/axon-core.xsd
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+       
+        <!-- 在代码中获取properties文件的键值 -->
+    <util:properties id="config" location="classpath:config.properties">
+    </util:properties>
+    
+    <!-- 全局配置 -->
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations" value="classpath:config.properties"/>
+    </bean>
+    
+    <!-- 
+	这里不扫描标注为@Controller注解的SpringMVC控制类，仅扫描标注为@Service、@Repository的类
+	 -->
+    <context:component-scan base-package="com.neusoft.saca.snap.engine.* , com.neusoft.saca.snap.search.* , com.neusoft.saca.snap.infrastructure" use-default-filters="false">
+    	<context:include-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+    	<context:include-filter type="annotation" expression="org.springframework.stereotype.Repository"/>
+    </context:component-scan>
+    
+    <!-- 这里使用Spring3中新增加缓存支持，涉及到@Cacheable、@CacheEvict两个注解 -->
+	<!-- 启用缓存注解功能，这个是必须的，否则注解不会生效，另外，该注解一定要声明在spring主配置文件中才会生效 -->
+	<cache:annotation-driven cache-manager="springCacheManager" />
+
+	<!-- cacheManager工厂类，指定ehcache.xml的位置 -->
+	<bean id="cacheManagerFactory"
+		class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
+		<property name="configLocation" value="classpath:META-INF/ehcache.xml" />
+	</bean>
+
+	<!-- 声明cacheManager -->
+	<bean id="springCacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager">
+		<property name="cacheManager" ref="cacheManagerFactory" />
+	</bean>
+	
+	<!-- 这里启用RRiBbit分布式事件总线，涉及到@Listener注解 -->
+	<bean id="creator" class="org.rribbit.creation.SpringBeanClassBasedListenerObjectCreator">
+<!-- 		<property name="classNames"> -->
+			<!-- 实现这些接口的Spring Beans都会被注册为RRiBbit的事件侦听器 -->
+<!-- 		</property> -->
+		<property name="scanSubpackages">
+			<value>true</value>
+		</property>
+		<property name="packageNames">
+			<list>
+				<value>com.neusoft.saca.snap.listener</value>
+			</list>
+		</property>
+		<property name="excludedClasses">
+			<!-- 设置在扫描包中不应该被扫描的类或者接口 -->
+			<list>
+			</list>
+		</property>
+	</bean>
+	<bean id="requestResponseBus" class="com.neusoft.saca.snap.infrastructure.event.EventBusInitializer"
+		factory-method="createRequestResponseBusForLocalUse">
+		<constructor-arg ref="creator" />
+		<constructor-arg value="true" />
+	</bean>
+	<bean id="rribbitEventListenerExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="${rribbit.threadPool.corePoolSize}" />
+		<property name="maxPoolSize" value="${rribbit.threadPool.maxPoolSize}" />
+		<property name="waitForTasksToCompleteOnShutdown" value="true" />
+	</bean>
+	
+	<!-- 添加freemarker -->
+	<bean id="freeMarkerConfigurer" class="org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer">
+	<property name="templateLoaderPath" value="/WEB-INF/freemarker-template/" />
+		<property name="freemarkerSettings">
+			<props>
+				<!-- 此缓存配置的单位是毫秒 -->
+				<prop key="template_update_delay">${freemarker.template_update_delay}</prop>
+				<prop key="default_encoding">UTF-8</prop>
+				<prop key="locale">zh_CN</prop>
+			</props>
+		</property>
+	</bean>
+	
+    
+    <!-- 用于处理Office转pdf的线程池 -->
+	<bean id="pdfTaskExecutor"
+          class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <property name="corePoolSize" value="9"/>
+        <property name="maxPoolSize" value="20"/>
+        <property name="waitForTasksToCompleteOnShutdown" value="true"/>
+    </bean>
+    
+    <!-- 用于处理重建文件索引的线程池 -->
+	<bean id="fileIndexExecutor"
+          class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <property name="corePoolSize" value="9"/>
+        <property name="maxPoolSize" value="50"/>
+        <property name="waitForTasksToCompleteOnShutdown" value="true"/>
+    </bean>    
+    
+
+	<!-- 
+	扫描除了@Controller以外的所有注解
+	 -->
+    <context:component-scan base-package="com.neusoft.saca.snap.search, com.neusoft.saca.snap.infrastructure.util, com.neusoft.saca.snap.infrastructure.spring,com.neusoft.saca.snap.infrastructure.license,com.neusoft.saca.snap.infrastructure.constant,com.neusoft.saca.snap.infrastructure.search">
+    </context:component-scan>
+
+    
+    <!-- 启用基于注解的配置 -->
+	<context:annotation-config/> 
+    
+    <!-- openoffice配置，为了实现openoffice可配置安装，改用PdfConvertConfig动态根据配置加载bean-->
+     <bean id="officeManagerConfiguration" class="org.artofsolving.jodconverter.office.DefaultOfficeManagerConfiguration">
+     	<property name="officeHome" value="${office.home}"/> 
+     	<property name="portNumbers" value="${office.port}"/> 
+    	<property name="taskExecutionTimeout" value="${office.taskExecutionTimeout}"/> 
+    	<property name="taskQueueTimeout" value="${office.taskQueueTimeout}"/> 
+     </bean> 
+    
+    <!-- 这里启用Apache Solr全文检索服务 -->
+	<bean id="httpSolrServer" class="com.neusoft.saca.snap.infrastructure.search.SolrServerFactory">
+		<property name="serverURL" value="${solr.serverURL}" />
+	</bean>
+	
+	<!-- 配置RestTemplate -->
+	<!--Http client Factory -->
+	<bean id="httpClientFactory" class="org.springframework.http.client.SimpleClientHttpRequestFactory">
+		<property name="connectTimeout" value="${rest.connect.timeout}" />
+		<property name="readTimeout" value="${rest.read.timeout}" />
+	</bean>
+
+	<!--RestTemplate -->
+	<bean id="restTemplate" class="org.springframework.web.client.RestTemplate">
+		<constructor-arg ref="httpClientFactory" />
+	</bean>
+	
+	<bean id="snapFileServerAPI" class="com.neusoft.saca.snap.api.file.FileServerAPIOauth">
+		<property name="url" value="${file.engine.uri}" />
+		<property name="restTemplate" ref="restTemplate" />
+	</bean>
+	
+    <!-- begin 配置搜索http client -->
+	<!-- httpclient线程池 -->
+	<bean id="connectionManagerParams" class="org.apache.commons.httpclient.params.HttpConnectionManagerParams">
+		<property name="connectionTimeout" value="10000" />
+		<property name="soTimeout" value="10000" />
+		<property name="maxTotalConnections" value="30" />
+		<property name="defaultMaxConnectionsPerHost" value="20" />
+	</bean>
+
+	<bean id="connectionManager" class="org.apache.commons.httpclient.MultiThreadedHttpConnectionManager">
+		<property name="params" ref="connectionManagerParams" />
+	</bean>
+
+	<bean id="httpclient" class="org.apache.commons.httpclient.HttpClient">
+		<constructor-arg>
+			<ref bean="connectionManager" />
+		</constructor-arg>
+	</bean>
+	<!-- end 配置搜索http client -->
+</beans>
